@@ -1,10 +1,9 @@
 ---
-title: "VaR dla stock market portfolio"
+title: "VaR for a Financial Portfolio"
 author: "Magdalena Marecik"
 output: html_document
 ---
 
-)
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -29,9 +28,10 @@ font-family: Arial, Helvetica, sans-serif}
 
 The VaR (Value at Risk) concept can be applied to analyze the risk of individual securities as well as a portfolio of such assets. It addresses the question of the potential level of loss at a given confidence level. The project aims to examine how the correlation between the return rates of securities within an investment portfolio affects the risk magnitude. The portfolio under analysis comprises three stock market indices in equal proportions:
 
-DAX (Deutscher Aktienindex) - the German stock market index traded on the Frankfurt Stock Exchange
-WIG - stock market index listed on the Warsaw Stock Exchange
-SMI (Swiss Market Index) - stock market index of companies listed on the Swiss Exchange
+- DAX (Deutscher Aktienindex) - the German stock market index traded on the Frankfurt Stock Exchange
+- WIG - stock market index listed on the Warsaw Stock Exchange
+- SMI (Swiss Market Index) - stock market index of companies listed on the Swiss Exchange
+
 The project involves monitoring the Pearson correlation, the EWMA model, and the GARCH(1,1) model between the return rates of the above-mentioned stock market indices for the years 2006-2021. Using each model, the volatility of the investment portfolio was estimated, and then, with a time horizon T=250, the 95% VaR was determined using the variance-covariance method. In the final stage, Kupiec's test, Christoffersen's test, and Real Value tests were conducted to verify whether the risk level was accurately estimated.
 
 

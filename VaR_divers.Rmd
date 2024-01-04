@@ -1,13 +1,10 @@
 ---
-title: "VaR dla portfela rynkowego"
+title: "VaR dla stock market portfolio"
 author: "Magdalena Marecik"
-date: "23 01 2022"
 output: html_document
 ---
 
-
-##### Kod w R: [link](https://github.com/mmarecik/VaR-multiple-assets-portfolio/blob/main/code.R)
-
+)
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -25,19 +22,17 @@ font-family: Arial, Helvetica, sans-serif}
 </style>
 
 
-## Wprowadzenie
+## Introduction
 
 
 
-Koncepcja VaR może być przeznaczona zarówno do analizy ryzyka pojedynczego papieru wartościowego jak i portfela tego typu walorów. Odpowiada na pytanie, jaki jest potencjalny poziom straty przy zadanym poziomie ufności. Celem projektu jest sprawdzenie jak korelacja między stopami strat walorów wchodzących w skład portfela inwestycyjnego wpływa na wielkość ryzyka. Analizowane będzie portfel, w którego skład wchodzą w takich samych proporcjach trzy indeksy giełdowe:
 
-- DAX (Deutscher Aktienindex) - niemiecki indeks giełdowy, notowany na giełdzie we Frankfurcie
+The VaR (Value at Risk) concept can be applied to analyze the risk of individual securities as well as a portfolio of such assets. It addresses the question of the potential level of loss at a given confidence level. The project aims to examine how the correlation between the return rates of securities within an investment portfolio affects the risk magnitude. The portfolio under analysis comprises three stock market indices in equal proportions:
 
-- WIG - indeks giełdowy notowany na Giełdzie Papierów Wartościowych w Warszawie.
-
-- SMI (Swiss Market Index) - indeks giełdowy spółek notowanych na Szwajcarskiej Giełdzie Papierów Wartościowych
-
-W projekcie dokonano monitorowania korelacji wg Pearsona, modelu EWMA oraz modelu GARCH(1,1) pomiędzy stopami strat powyższych indeksów giełdowych dla lat 2006 - 2021. Z wykorzystaniem każdego z modeli wyestymowano zmienność portfela inwestycyjnego, a następnie, biorąc horyzont czasowy T=250, wyznaczono 95% VaR metodą wariancji-kowariancji. W ostatnim etapie  przeprowadzono test Kupca, Christoffersena oraz test wartości rzeczywistych aby zweryfikować, czy poziom ryzyka został oszacowany poprawnie.
+DAX (Deutscher Aktienindex) - the German stock market index traded on the Frankfurt Stock Exchange
+WIG - stock market index listed on the Warsaw Stock Exchange
+SMI (Swiss Market Index) - stock market index of companies listed on the Swiss Exchange
+The project involves monitoring the Pearson correlation, the EWMA model, and the GARCH(1,1) model between the return rates of the above-mentioned stock market indices for the years 2006-2021. Using each model, the volatility of the investment portfolio was estimated, and then, with a time horizon T=250, the 95% VaR was determined using the variance-covariance method. In the final stage, Kupiec's test, Christoffersen's test, and Real Value tests were conducted to verify whether the risk level was accurately estimated.
 
 
 ```{r}
@@ -47,9 +42,9 @@ library(grid)
 library(gridExtra)
 library(knitr)
 
-dax <- read.csv("C:/Users/Magda/Desktop/Studia/Sem5/IMRR/Projekt1/dax.csv") # German Stock Index DAX 30
-wig <- read.csv("C:/Users/Magda/Desktop/Studia/Sem5/IMRR/Projekt1/wig.csv") # WIG
-smi <- read.csv("C:/Users/Magda/Desktop/Studia/Sem5/IMRR/Projekt1/smi.csv") # Swiss Market Index
+dax <- read.csv("./dax.csv") # German Stock Index DAX 30
+wig <- read.csv("./wig.csv") # WIG
+smi <- read.csv("./smi.csv") # Swiss Market Index
 
 dax <- dax[,c(1,5)]
 wig <- wig[,c(1,5)]
@@ -59,43 +54,43 @@ dax$Data <-  as.Date(dax$Data)
 wig$Data <-  as.Date(wig$Data)
 smi$Data <-  as.Date(smi$Data)
 
-colnames(dax) <- c("data", "zamkniecie")
-colnames(wig) <- c("data", "zamkniecie")
-colnames(smi) <- c("data", "zamkniecie")
+colnames(dax) <- c("data", "close")
+colnames(wig) <- c("data", "close")
+colnames(smi) <- c("data", "close")
 ```
 
 
 
 
-## Wstępna analiza
+## Exploratory data analysis
 
 
 
-Patrząc na poniższy wykres można domniemywać, że występuje dość wyraźny związek pomiędzy cenami indeksów WMI, DAX i SMI, które zdają się mieć podobny przebieg zmian. Możemy zaobserować, że zarówno długookresowe, jak i krótkookresowe zmiany cen w czasie są analogiczne dla wszystkich trzech indeksów. 
+Looking at the chart below, one can presume that there is a fairly distinct relationship between the prices of the WMI, DAX, and SMI indices, which appear to exhibit a similar pattern of changes. It can be observed that both long-term and short-term price variations over time are analogous for all three indices. 
 
 
 ```{r fig.width=12, fig.height=7}
 stocks <- merge(dax, wig, by="data")
 stocks <- merge(stocks, smi, by="data")
 
-# Ceny zamkniecia osobno
+# closing prices
 
 g1 <- ggplot(data = stocks, aes(x = data)) +
-  geom_line(aes(y = zamkniecie.x), size=.6, color = '#065823') + 
+  geom_line(aes(y = close.x), size=.6, color = '#065823') + 
   xlab("") + ylab("") + 
-  labs(title="Ceny zamkniecia DAX 30") + 
+  labs(title="Closing price DAX 30") + 
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 
 g2 <- ggplot(data = stocks, aes(x = data)) +
-  geom_line(aes(y = zamkniecie.y), size=.6, color = '#3E8C4B') +
+  geom_line(aes(y = close.y), size=.6, color = '#3E8C4B') +
   xlab("") + ylab("") + 
-  labs(title="Ceny zamkniecia WIG") + 
+  labs(title="Closing price WIG") + 
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 
 g3 <- ggplot(data = stocks, aes(x = data)) +
-  geom_line(aes(y = zamkniecie), size=.6, color = '#74AE56') + 
+  geom_line(aes(y = close), size=.6, color = '#74AE56') + 
   xlab("") + ylab("") + 
-  labs(title="Ceny zamkniecia SMI") + 
+  labs(title="Closing price SMI") + 
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 
 grid.arrange(g1, g2, g3)
@@ -105,48 +100,48 @@ grid.arrange(g1, g2, g3)
 
 
 
-Na poniższym wykresie widzimy, że ceny zamknięcia indeksów SMI oraz DAX są pdobne. Ceny zamknięcia indeksu WIG są znacznie większe od cen pozostałych dwóch walorów, ponieważ w skład WIG wchodzi zdecydowanie więcej spółek.
+In the chart below, we can see that the closing prices of the SMI and DAX indices are similar. The closing prices of the WIG index are significantly higher than those of the other two assets because the WIG index includes a considerably larger number of companies.
 
 
 ```{r fig.width=12, fig.height=5}
 ggplot(data = stocks, aes(x = data)) +
-  geom_line(aes(y = zamkniecie.x, color = 'DAX 30'), size=.6, color = '#065823') + 
-  geom_line(aes(y = zamkniecie, color = 'SMI'), size=.6, color = '#74AE56') +
-  geom_line(aes(y = zamkniecie.y, color = 'WIG'), size=.6, color = '#3E8C4B') + 
-  xlab("Data") + ylab("Cena zamkniecia") + 
-  labs(title="Ceny zamkniecia indeksow gieldowych\nDAX 30, WIG oraz SMI",
-       color = "Legenda") + 
+  geom_line(aes(y = close.x, color = 'DAX 30'), size=.6, color = '#065823') + 
+  geom_line(aes(y = close, color = 'SMI'), size=.6, color = '#74AE56') +
+  geom_line(aes(y = close.y, color = 'WIG'), size=.6, color = '#3E8C4B') + 
+  xlab("Date") + ylab("Closing price") + 
+  labs(title="Closing prices of market indices\nDAX 30, WIG and SMI",
+       color = "Legend") + 
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 ```
 
 
 ```{r}
-dax$zwroty <- (dax$zamkniecie - lag(dax$zamkniecie)) /  lag(dax$zamkniecie)
-wig$zwroty <- (wig$zamkniecie - lag(wig$zamkniecie)) /  lag(wig$zamkniecie)
-smi$zwroty <- (smi$zamkniecie - lag(smi$zamkniecie)) /  lag(smi$zamkniecie)
+dax$returns <- (dax$close - lag(dax$close)) /  lag(dax$close)
+wig$returns <- (wig$close - lag(wig$close)) /  lag(wig$close)
+smi$returns <- (smi$close - lag(smi$close)) /  lag(smi$close)
 ```
 
 
-Patrząc na wykresy stóp zwrotu poszczególnych indeksów widzimy, że skupiska zmienności występują w podobnych okresach, zatem zmiany ich cen były w duzej mierze kształtowane przez te same zjawiska rynkowe. Wystepowanie większych oraz mniejszych wahań stóp wszystkich trzech walorów w podobnym czasie pozwala wyciągnąć wstępne przypuszczenia o występowaniu relacji pomiędzy zwrotami.
+Looking at the return rate charts of individual indices, we can observe that clusters of volatility occur in similar periods. Therefore, the changes in their prices were largely shaped by the same market phenomena. The presence of larger and smaller fluctuations in the returns of all three assets at similar times allows for preliminary assumptions about the existence of relationships between the returns.
 
 
 ```{r fig.width=12, fig.height=8}
 g1 <- ggplot(data = dax, aes(x = data)) +
-  geom_line(aes(y = zwroty), size=.3, alpha=.8) + 
+  geom_line(aes(y = returns), size=.3, alpha=.8) + 
   xlab("") + ylab("") + 
-  labs(title="Stopy zwrotu DAX 30") + 
+  labs(title="Daily returns DAX 30") + 
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 
 g2 <- ggplot(data = wig, aes(x = data)) +
-  geom_line(aes(y = zwroty), size=.3, alpha=.8) +
+  geom_line(aes(y = returns), size=.3, alpha=.8) +
   xlab("") + ylab("") + 
-  labs(title="Stopy zwrotu WIG") + 
+  labs(title="Daily returns WIG") + 
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 
 g3 <- ggplot(data = smi, aes(x = data)) +
-  geom_line(aes(y = zwroty), size=.3, alpha=.8) + 
+  geom_line(aes(y = returns), size=.3, alpha=.8) + 
   xlab("") + ylab("") + 
-  labs(title="Stopy zwrotu SMI") + 
+  labs(title="Daily returns SMI") + 
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 
 grid.arrange(g1, g2, g3)
@@ -157,14 +152,14 @@ grid.arrange(g1, g2, g3)
 
 
 
-## Monitorowanie korelacji
+## Monitoring the coefficient of Pearson's correlation
 
 
 
-Aby dowiedzieć się, w jaki sposób zmiany cen dwóch aktywów zmieniały się w stosunku do siebie w przeszłości, inwestorzy konstruują macierze korelacji. Jest to tabeleryczna reprezentacja wartości współczynników korelacji pomiędzy stopami strat poszczególnych składowych portfela.
 
+To understand how price changes of two assets have historically related to each other, investors construct correlation matrices. This is a tabular representation of correlation coefficients between the return rates of individual components of the portfolio.
 
-Współczynniki korelacji liczymy nie dla cen zamknięcia walorów, ale dla stóp zwrotu z wybranego okresu. Współczynnik ten informuje o tym, jaka część ruchów cen dwóch aktywów jest spowodowany tymi samymi siłami rynkowymi. Korelacja stóp zwrotu nie jest stała w czasie, dlatego należy znaleźć sposób, aby ją monitorować. Współczynnik korelacji pomiędzy stratami walorów wchodzących w skład portfela możemy definiować za pomocą korelacji liniowej Pearsona, biorąc pod uwagę T ostatnich stóp zwrotu:
+The correlation coefficients are calculated not for the closing prices of assets but for the return rates over a selected period. This coefficient informs about the portion of price movements of two assets caused by the same market forces. Return rate correlation is not constant over time, so a method to monitor it must be found. The correlation coefficient between the returns of assets in the portfolio can be defined using Pearson's linear correlation, considering the last T return rates:
 
 
 $$
@@ -175,8 +170,8 @@ $$
 cov(V_1,V_2) = E(V_1V_2) - E(V_1)E(V_2)
 $$
 
-Korelacja Pearsona wymaga spełnienia założenia o normalności stóp zwrotu, w przeciwnym wypadku może być jedynie przybliżeniem korelacji strat. Innym sposobem monitorowania korelacji jest model EWMA, który słusznie przypisuje większe wagi nowszym obserwacjom. Szacowana kowariancja stóp jest obliczana według wzoru:
 
+Pearson correlation requires the assumption of normality in return rates; otherwise, it may only serve as an approximation of the correlation of losses. Another way to monitor correlation is the EWMA (Exponentially Weighted Moving Average) model, which rightfully assigns greater weights to more recent observations. The estimated covariance of returns is calculated according to the formula:
 
 
 $$
@@ -184,7 +179,7 @@ cov_n = \lambda \cdot cov_{n-1} + (1-\lambda)\cdot x_{n-1}y_{n-1}
 $$
 
 
-Do aktualizacji oszacowań współczynnika kowariancji można wykorzystać także model GARCH(1,1):
+For updating the estimates of the covariance coefficient, the GARCH(1,1) model can also be employed:
 
 
 $$
@@ -194,29 +189,29 @@ $$
 
 ```{r}
 dax <- dax[-1,]
-dax$wariancja <- NaN
-okno <- 30
-for(i in c((okno+1):(nrow(dax)))){
-  dax$wariancja[i] <- (sum((dax$zwroty[(i-okno):(i-1)])^2))/okno
+dax$variance <- NaN
+window <- 30
+for(i in c((window+1):(nrow(dax)))){
+  dax$variance[i] <- (sum((dax$returns[(i-window):(i-1)])^2))/window
 }
-names(dax) <- c("data", "zamkniecie.dax", "zwrot.dax", "var.dax")
+names(dax) <- c("data", "close.dax", "return.dax", "var.dax")
 
 wig <- wig[-1,]
-wig$wariancja <- NaN
-okno <- 30
-for(i in c((okno+1):(nrow(wig)))){
-  wig$wariancja[i] <- (sum((wig$zwroty[(i-okno):(i-1)])^2))/okno
+wig$variance <- NaN
+window <- 30
+for(i in c((window+1):(nrow(wig)))){
+  wig$variance[i] <- (sum((wig$returns[(i-window):(i-1)])^2))/window
 }
-names(wig) <- c("data", "zamkniecie.wig", "zwrot.wig", "var.wig")
+names(wig) <- c("data", "close.wig", "return.wig", "var.wig")
 
 
 smi <- smi[-1,]
-smi$wariancja <- NaN
-okno <- 30
-for(i in c((okno+1):(nrow(smi)))){
-  smi$wariancja[i] <- (sum((smi$zwroty[(i-okno):(i-1)])^2))/okno
+smi$variance <- NaN
+window <- 30
+for(i in c((window+1):(nrow(smi)))){
+  smi$variance[i] <- (sum((smi$returns[(i-window):(i-1)])^2))/window
 }
-names(smi) <- c("data", "zamkniecie.smi", "zwrot.smi", "var.smi")
+names(smi) <- c("data", "close.smi", "return.smi", "var.smi")
 
 
 df <-  merge(dax[,-2], wig[,-2], by="data")
@@ -230,14 +225,14 @@ df$cor.dax.smi <- NaN
 df$cor.wig.smi <- NaN
 
 
-for(i in c((okno+1):(nrow(df)))){
-  df$cov.dax.wig[i]<- cov(df$zwrot.dax[(i-okno):(i-1)], df$zwrot.wig[(i-okno):(i-1)], method = 'pearson')
-  df$cov.dax.smi[i]<- cov(df$zwrot.dax[(i-okno):(i-1)], df$zwrot.smi[(i-okno):(i-1)], method = 'pearson')
-  df$cov.wig.smi[i]<- cov(df$zwrot.wig[(i-okno):(i-1)], df$zwrot.smi[(i-okno):(i-1)], method = 'pearson')
+for(i in c((window+1):(nrow(df)))){
+  df$cov.dax.wig[i]<- cov(df$return.dax[(i-window):(i-1)], df$return.wig[(i-window):(i-1)], method = 'pearson')
+  df$cov.dax.smi[i]<- cov(df$return.dax[(i-window):(i-1)], df$return.smi[(i-window):(i-1)], method = 'pearson')
+  df$cov.wig.smi[i]<- cov(df$return.wig[(i-window):(i-1)], df$return.smi[(i-window):(i-1)], method = 'pearson')
   
-  df$cor.dax.wig[i]<- cor(df$zwrot.dax[(i-okno):(i-1)], df$zwrot.wig[(i-okno):(i-1)], method = 'pearson')
-  df$cor.dax.smi[i]<- cor(df$zwrot.dax[(i-okno):(i-1)], df$zwrot.smi[(i-okno):(i-1)], method = 'pearson')
-  df$cor.wig.smi[i]<- cor(df$zwrot.wig[(i-okno):(i-1)], df$zwrot.smi[(i-okno):(i-1)], method = 'pearson')
+  df$cor.dax.wig[i]<- cor(df$return.dax[(i-window):(i-1)], df$return.wig[(i-window):(i-1)], method = 'pearson')
+  df$cor.dax.smi[i]<- cor(df$return.dax[(i-window):(i-1)], df$return.smi[(i-window):(i-1)], method = 'pearson')
+  df$cor.wig.smi[i]<- cor(df$return.wig[(i-window):(i-1)], df$return.smi[(i-window):(i-1)], method = 'pearson')
 }
 
 df$data <- as.Date(df$data)
@@ -252,23 +247,23 @@ ewma$cor.dax.wig <- NaN
 ewma$cor.dax.smi <- NaN
 ewma$cor.wig.smi <- NaN
 
-ewma$cov.dax.wig[okno+1] <- df$cov.dax.wig[okno+1]
-ewma$cov.dax.smi[okno+1] <- df$cov.dax.smi[okno+1]
-ewma$cov.wig.smi[okno+1] <- df$cov.wig.smi[okno+1]
+ewma$cov.dax.wig[window+1] <- df$cov.dax.wig[window+1]
+ewma$cov.dax.smi[window+1] <- df$cov.dax.smi[window+1]
+ewma$cov.wig.smi[window+1] <- df$cov.wig.smi[window+1]
 
 lambda <- 0.94
-i<-okno+2
-for(i in c((okno+2):(nrow(ewma)))){
+i<-window+2
+for(i in c((window+2):(nrow(ewma)))){
   ewma$cov.dax.wig[i]<- lambda * ewma$cov.dax.wig[i-1] + 
-    (1-lambda) * ewma$zwrot.dax[i-1] * ewma$zwrot.wig[i-1]
+    (1-lambda) * ewma$return.dax[i-1] * ewma$return.wig[i-1]
   ewma$cov.dax.smi[i]<- lambda * ewma$cov.dax.smi[i-1] + 
-    (1-lambda) * ewma$zwrot.dax[i-1] * ewma$zwrot.smi[i-1]
+    (1-lambda) * ewma$return.dax[i-1] * ewma$return.smi[i-1]
   ewma$cov.wig.smi[i]<- lambda * ewma$cov.wig.smi[i-1] + 
-    (1-lambda) * ewma$zwrot.wig[i-1] * ewma$zwrot.smi[i-1]
+    (1-lambda) * ewma$return.wig[i-1] * ewma$return.smi[i-1]
   
-  ewma$var.dax[i]<- lambda * ewma$var.dax[i-1] + (1-lambda) * ewma$zwrot.dax[i-1]^2
-  ewma$var.wig[i]<- lambda * ewma$var.wig[i-1] + (1-lambda) * ewma$zwrot.wig[i-1]^2
-  ewma$var.smi[i]<- lambda * ewma$var.smi[i-1] + (1-lambda) * ewma$zwrot.smi[i-1]^2
+  ewma$var.dax[i]<- lambda * ewma$var.dax[i-1] + (1-lambda) * ewma$return.dax[i-1]^2
+  ewma$var.wig[i]<- lambda * ewma$var.wig[i-1] + (1-lambda) * ewma$return.wig[i-1]^2
+  ewma$var.smi[i]<- lambda * ewma$var.smi[i-1] + (1-lambda) * ewma$return.smi[i-1]^2
   
   ewma$cor.dax.wig[i]<- ewma$cov.dax.wig[i]/sqrt(ewma$var.dax[i]*ewma$var.wig[i])
   ewma$cor.dax.smi[i]<- ewma$cov.dax.smi[i]/sqrt(ewma$var.dax[i]*ewma$var.smi[i])
@@ -286,40 +281,40 @@ garch$cor.dax.wig <- NaN
 garch$cor.dax.smi <- NaN
 garch$cor.wig.smi <- NaN
 
-garch$cov.dax.wig[okno+1] <- df$cov.dax.wig[okno+1]
-garch$cov.dax.smi[okno+1] <- df$cov.dax.smi[okno+1]
-garch$cov.wig.smi[okno+1] <- df$cov.wig.smi[okno+1]
+garch$cov.dax.wig[window+1] <- df$cov.dax.wig[window+1]
+garch$cov.dax.smi[window+1] <- df$cov.dax.smi[window+1]
+garch$cov.wig.smi[window+1] <- df$cov.wig.smi[window+1]
 
 gamm <- 0.01
 alfa <- 0.1
 beta <- 0.89
 
-long.cov.dax.wig <- gamm*(sum(df$zwrot.dax*df$zwrot.wig))/nrow(df)
-long.cov.dax.smi <- gamm*(sum(df$zwrot.dax*df$zwrot.smi))/nrow(df)
-long.cov.wig.smi <- gamm*(sum(df$zwrot.wig*df$zwrot.smi))/nrow(df)
+long.cov.dax.wig <- gamm*(sum(df$return.dax*df$return.wig))/nrow(df)
+long.cov.dax.smi <- gamm*(sum(df$return.dax*df$return.smi))/nrow(df)
+long.cov.wig.smi <- gamm*(sum(df$return.wig*df$return.smi))/nrow(df)
 
-long.var.wig <- gamm*(sum(df$zwrot.wig^2))/nrow(df)
-long.var.dax <- gamm*(sum(df$zwrot.dax^2))/nrow(df)
-long.var.smi <- gamm*(sum(df$zwrot.smi^2))/nrow(df)
+long.var.wig <- gamm*(sum(df$return.wig^2))/nrow(df)
+long.var.dax <- gamm*(sum(df$return.dax^2))/nrow(df)
+long.var.smi <- gamm*(sum(df$return.smi^2))/nrow(df)
 
-for(i in c((okno+2):(nrow(garch)))){
+for(i in c((window+2):(nrow(garch)))){
   
   garch$cov.dax.wig[i]<- long.cov.dax.wig + 
-    alfa * garch$zwrot.dax[i-1] * garch$zwrot.wig[i-1] +
+    alfa * garch$return.dax[i-1] * garch$return.wig[i-1] +
       beta * garch$cov.dax.wig[i-1]
     
   garch$cov.dax.smi[i]<- long.cov.dax.smi + 
-    alfa * garch$zwrot.dax[i-1] * garch$zwrot.smi[i-1] +
+    alfa * garch$return.dax[i-1] * garch$return.smi[i-1] +
     beta * garch$cov.dax.smi[i-1]
   
   garch$cov.wig.smi[i]<- long.cov.wig.smi + 
-    alfa * garch$zwrot.smi[i-1] * garch$zwrot.wig[i-1] +
+    alfa * garch$return.smi[i-1] * garch$return.wig[i-1] +
     beta * garch$cov.wig.smi[i-1]
   
   
-  garch$var.dax[i]<- long.var.dax + alfa * garch$zwrot.dax[i-1]^2 + beta * garch$var.dax[i-1]
-  garch$var.wig[i]<- long.var.wig + alfa * garch$zwrot.wig[i-1]^2 + beta * garch$var.wig[i-1]
-  garch$var.smi[i]<- long.var.smi + alfa * garch$zwrot.smi[i-1]^2 + beta * garch$var.smi[i-1]
+  garch$var.dax[i]<- long.var.dax + alfa * garch$return.dax[i-1]^2 + beta * garch$var.dax[i-1]
+  garch$var.wig[i]<- long.var.wig + alfa * garch$return.wig[i-1]^2 + beta * garch$var.wig[i-1]
+  garch$var.smi[i]<- long.var.smi + alfa * garch$return.smi[i-1]^2 + beta * garch$var.smi[i-1]
   
   garch$cor.dax.wig[i]<- garch$cov.dax.wig[i]/sqrt(garch$var.dax[i]*garch$var.wig[i])
   garch$cor.dax.smi[i]<- garch$cov.dax.smi[i]/sqrt(garch$var.dax[i]*garch$var.smi[i])
@@ -351,7 +346,7 @@ cov.df <- data.frame(data=as.Date(df$data),
 ```
 
 
-Przykładowa macierz korelacji dla omawianego portfela na dzień 01.12.2021 wyznaczona metodą Pearsona dla T=30 wygląda następująco:
+An example correlation matrix for the discussed portfolio as of December 1, 2021, determined using the Pearson method for T=30, looks as follows:
 
 
 ```{r results='asis'}
@@ -373,30 +368,30 @@ kable(cm)
 ```
 
 
-Na poniższym wykresie przedstawiono wyniki monitorowania korelacji w czasie, wykorzystując do tego wyżej opisane metody i wartości historyczne stóp zwrotu. Wszystkie techniki pozwoliły uzyskać podobny poziom ciągu korelacji, jednak na wykresach dla metody EWMA oraz GARCH(1,1) zauważalny jest wpływ nadawania wag historycznym kowariancjom. O ile wykres dla korelacji wg Pearsona często wskazuje na gwałtowne spadki zależności pomiędzy poszczególnymi walorami, o tyle na wykresach EWMA i GARCH spadki te są znacznie łagodniejsze, ponieważ duże wagi nadawanej są wysokim kowariancjom mającym miejsce w niedalekiej przeszłości. Przykładem może być początek 2015 roku, kiedy współczynnik Pearsona wskazuje, że korelacja pomiędzy WIG i DAX spadła z poziomu 0.25 do -0.2, zaś metody EWMA i GARCH praktycznie wcale nie odnotowały tego spadku.
+The chart below illustrates the results of monitoring correlation over time, utilizing the methods and historical return rate values described earlier. All techniques yielded a similar trend in correlation, but in the charts for the EWMA method and GARCH(1,1) method, the influence of assigning weights to historical covariances is noticeable. While the Pearson correlation chart often indicates sharp declines in relationships between individual assets, the declines on the EWMA and GARCH charts are much smoother. This is because significant weights are given to high covariances occurring in the recent past. An example is the beginning of 2015 when the Pearson coefficient suggests that the correlation between WIG and DAX dropped from 0.25 to -0.2, whereas the EWMA and GARCH methods practically did not register this decline.
 
 
 ```{r fig.width=12, fig.height=7}
 g1 <- ggplot(data = cor.df, aes(x = data)) +
   geom_line(aes(y = pearson.dax.wig), size=.3, alpha=.9) + 
-  xlab("Data") + ylab("Korelacja Pearsona") + 
-  labs(title="Korelacja Pearsona") + 
+  xlab("Date") + ylab("Pearson's correlation") + 
+  labs(title="Pearson's correlation") + 
   scale_x_date(date_breaks = "2 years") + theme_bw() + ylim(-0.6,1.2)
 
 g2 <- ggplot(data = cor.df, aes(x = data)) +
   geom_line(aes(y = ewma.dax.wig), size=.3, alpha=.9) + 
-  xlab("Data") + ylab("Korelacja EWMA") + 
-  labs(title="Korelacja wg modelu EWMA") + 
+  xlab("Date") + ylab("Correlation EWMA") + 
+  labs(title="Correlation according to EWMA") + 
   scale_x_date(date_breaks = "2 years") + theme_bw() + ylim(-0.6,1.2)
 
 g3 <- ggplot(data = cor.df, aes(x = data)) +
   geom_line(aes(y = garch.dax.wig), size=.3, alpha=.9) + 
-  xlab("Data") + ylab("Korelacja GARCH") + 
-  labs(title="Korelacja wg modelu GARCH(1,1)") + 
+  xlab("Date") + ylab("Correlation GARCH") + 
+  labs(title="Correlation according to GARCH(1,1)") + 
   scale_x_date(date_breaks = "2 years") + theme_bw() + ylim(-0.6,1.2)
 
 grid.arrange(g1, g2, g3,
-             top = textGrob("Zmiana korelacji w czasie pomiedzy stopami zwrotu indeksow gieldowych DAX i WIG", 
+             top = textGrob("Changes in coefficients of correlation between daily returns of DAX and WIG market indeces", 
                             gp=gpar(fontsize=17)))
 ```
 
@@ -406,24 +401,24 @@ grid.arrange(g1, g2, g3,
 ```{r fig.width=12, fig.height=7}
 g1 <- ggplot(data = cor.df, aes(x = data)) +
   geom_line(aes(y = pearson.dax.smi), size=.4, alpha=.9) + 
-  xlab("Data") + ylab("Korelacja Pearsona") + 
-  labs(title="Korelacja Pearsona") + 
+  xlab("Date") + ylab("Pearson's correlation") + 
+  labs(title="Pearson's correlation") + 
   scale_x_date(date_breaks = "2 years") + theme_bw() + ylim(-0.6,1.2)
 
 g2 <- ggplot(data = cor.df, aes(x = data)) +
   geom_line(aes(y = ewma.dax.smi), size=.4, alpha=.9) + 
-  xlab("Data") + ylab("Korelacja EWMA") + 
-  labs(title="Korelacja wg modelu EWMA") + 
+  xlab("Data") + ylab("Correlation EWMA") + 
+  labs(title="Correlation according to EWMA") +  
   scale_x_date(date_breaks = "2 years") + theme_bw() + ylim(-0.6,1.2)
 
 g3 <- ggplot(data = cor.df, aes(x = data)) +
   geom_line(aes(y = garch.dax.smi), size=.4, alpha=.9) + 
-  xlab("Data") + ylab("Korelacja GARCH") + 
-  labs(title="Korelacja wg modelu GARCH(1,1)") + 
+  xlab("Date") + ylab("Correlation GARCH") + 
+  labs(title="Correlation according to GARCH(1,1)") + 
   scale_x_date(date_breaks = "2 years") + theme_bw() + ylim(-0.6,1.2)
 
 grid.arrange(g1, g2, g3,
-             top = textGrob("Zmiana korelacji w czasie pomiedzy stopami zwrotu indeksow gieldowych DAX i SMI", 
+             top = textGrob("Changes in coefficients of correlation between daily returns of DAX and SMI", 
                             gp=gpar(fontsize=17)))
 ```
 
@@ -433,35 +428,35 @@ grid.arrange(g1, g2, g3,
 ```{r fig.width=12, fig.height=7}
 g1 <- ggplot(data = cor.df, aes(x = data)) +
   geom_line(aes(y = pearson.wig.smi), size=.4, alpha=.9) + 
-  xlab("Data") + ylab("Korelacja Pearsona") + 
-  labs(title="Korelacja Pearsona") + 
+  xlab("Date") + ylab("Pearson's correlation") + 
+  labs(title="Pearson's correlation") + 
   scale_x_date(date_breaks = "2 years") + theme_bw() + ylim(-0.6,1.2)
 
 g2 <- ggplot(data = cor.df, aes(x = data)) +
   geom_line(aes(y = ewma.wig.smi), size=.4, alpha=.9) + 
-  xlab("Data") + ylab("Korelacja EWMA") + 
-  labs(title="Korelacja wg modelu EWMA") + 
+  xlab("Data") + ylab("Correlation EWMA") + 
+  labs(title="Correlation according to EWMA") + 
   scale_x_date(date_breaks = "2 years") + theme_bw() + ylim(-0.6,1.2)
 
 g3 <- ggplot(data = cor.df, aes(x = data)) +
   geom_line(aes(y = garch.wig.smi), size=.4, alpha=.9) + 
-  xlab("Data") + ylab("Korelacja GARCH") + 
-  labs(title="Korelacja wg modelu GARCH(1,1)") + 
+  xlab("Date") + ylab("Correlation GARCH") + 
+  labs(title="Correlation according to GARCH(1,1)") + 
   scale_x_date(date_breaks = "2 years") + theme_bw() + ylim(-0.6,1.2)
 
 grid.arrange(g1, g2, g3,
-             top = textGrob("Zmiana korelacji w czasie pomiedzy stopami zwrotu indeksow gieldowych WIG i SMI", 
+             top = textGrob("Changes in coefficients of correlation between daily returns of WIG and SMI", 
                             gp=gpar(fontsize=17)))
 ```
 
 
 
 
-#### Dlaczego korelacja zmniejsza ryzyko?
+#### Why the correlation helps mitigate risk? 
 
 
 
-Znajomość korelacji pomiędzy zmianami cen walorów może pomóc odpowiednio zdywersyfikować portfel, a co za tym idzie zmniejszyć ryzyko inwestycyjne. Jeśli mamy wystarczająco dużo nieskorelowanych aktywów w portfelu, prawdopodobieństwo, że ich ceny w dowolnym momencie zmienią się w tym samym kierunku staje się bardzo małe. W rzeczywistości, gdy jeden składnik portfela ponosi stratę, istnieje duża szansa, że jeden z pozostałych przyniesie zyski kompensujące. Z tego względu zestaw nieskorelowanych aktywów można połączyć w portfel o niskim ryzyku. 
+Understanding the correlation between changes in asset prices can help appropriately diversify a portfolio and, consequently, reduce investment risk. If a portfolio consists of a sufficient number of uncorrelated assets, the likelihood that their prices will change in the same direction at any given time becomes very low. In reality, when one component of the portfolio incurs a loss, there is a high chance that another will generate compensating profits. Therefore, a set of uncorrelated assets can be combined into a low-risk portfolio.
 
 
 
@@ -469,10 +464,10 @@ Znajomość korelacji pomiędzy zmianami cen walorów może pomóc odpowiednio z
 
 
 
-## Zmienność portfela
+## Portfolio volatility
 
 ```{r}
-zmiennosc <- function(v, m=30){
+volatility <- function(v, m=30){
   n <- length(v)
   s <- c()
   s[1:m] <- NaN
@@ -486,7 +481,7 @@ zmiennosc <- function(v, m=30){
 EWMA <- function(v, lambda=.94, m=30){
   n <- length(v)
   s <- c()
-  s[1:(m+1)] <- zmiennosc(v[1:(m+1)], m)
+  s[1:(m+1)] <- volatility(v[1:(m+1)], m)
   for(i in c((m+2):n)){
     s[i] <- lambda*s[i-1] + (1-lambda)*v[i-1]^2
   }
@@ -497,7 +492,7 @@ GARCH <- function(v, gamm=0.01, alfa=0.1, beta=0.89, m=30){
   n <- length(v)
   V_L <- gamm*var(v)
   s <- c()
-  s[1:(m+1)] <- zmiennosc(v[1:(m+1)], m)
+  s[1:(m+1)] <- volatility(v[1:(m+1)], m)
   
   for(i in c((m+2):n)){
     s[i] <- V_L + alfa*v[i-1]^2 + beta*s[i-1]
@@ -507,31 +502,31 @@ GARCH <- function(v, gamm=0.01, alfa=0.1, beta=0.89, m=30){
 ```
 
 ```{r}
-okno <- 250
+window <- 250
 
-# Zmiennosc wariancja
-zmiennosc.dax <- sqrt(zmiennosc(df$zwrot.dax,m=okno))
-zmiennosc.wig <- sqrt(zmiennosc(df$zwrot.wig, m=okno))
-zmiennosc.smi <- sqrt(zmiennosc(df$zwrot.smi, m=okno))
+# volatility variance
+volatility.dax <- sqrt(volatility(df$return.dax,m=window))
+volatility.wig <- sqrt(volatility(df$return.wig, m=window))
+volatility.smi <- sqrt(volatility(df$return.smi, m=window))
 
-zmiennosci <- data.frame(zmiennosc.dax, zmiennosc.smi, zmiennosc.wig)
-zmiennosci <- zmiennosci[-1,]
+volatilities <- data.frame(volatility.dax, volatility.smi, volatility.wig)
+volatilities <- volatilities[-1,]
 
-# Zmiennosc EWMA
-zmiennosc.dax <- sqrt(EWMA(df$zwrot.dax, m=okno))
-zmiennosc.wig <- sqrt(EWMA(df$zwrot.wig, m=okno))
-zmiennosc.smi <- sqrt(EWMA(df$zwrot.smi, m=okno))
+# volatility EWMA
+volatility.dax <- sqrt(EWMA(df$return.dax, m=window))
+volatility.wig <- sqrt(EWMA(df$return.wig, m=window))
+volatility.smi <- sqrt(EWMA(df$return.smi, m=window))
 
-zmiennosci.ewma <- data.frame(zmiennosc.dax, zmiennosc.smi, zmiennosc.wig)
-zmiennosci.ewma <- zmiennosci.ewma[-1,]
+volatilities.ewma <- data.frame(volatility.dax, volatility.smi, volatility.wig)
+volatilities.ewma <- volatilities.ewma[-1,]
 
-# Zmiennosc GARCH
-zmiennosc.dax <- sqrt(GARCH(df$zwrot.dax, m=okno))
-zmiennosc.wig <- sqrt(GARCH(df$zwrot.wig, m=okno))
-zmiennosc.smi <- sqrt(GARCH(df$zwrot.smi, m=okno))
+# volatility GARCH
+volatility.dax <- sqrt(GARCH(df$return.dax, m=window))
+volatility.wig <- sqrt(GARCH(df$return.wig, m=window))
+volatility.smi <- sqrt(GARCH(df$return.smi, m=window))
 
-zmiennosci.garch <- data.frame(zmiennosc.dax, zmiennosc.smi, zmiennosc.wig)
-zmiennosci.garch <- zmiennosci.garch[-1,]
+volatilities.garch <- data.frame(volatility.dax, volatility.smi, volatility.wig)
+volatilities.garch <- volatilities.garch[-1,]
 
 udzial <- 1/3
 
@@ -546,7 +541,7 @@ wallet.var <- matrix(data = 0, nrow = nrow(cor.df), ncol = 1)
 wallet.var.ewma <- matrix(data = 0, nrow = nrow(cor.df), ncol = 1)
 wallet.var.garch <- matrix(data = 0, nrow = nrow(cor.df), ncol = 1)
 
-for(t in c((okno+1):nrow(cor.df))){
+for(t in c((window+1):nrow(cor.df))){
   
   for(i in c(1:3)){
     for(j in c(1:i)){
@@ -568,15 +563,15 @@ for(t in c((okno+1):nrow(cor.df))){
 
       wallet.var[t] <- wallet.var[t] + 
                         cor.matrix[i,j] * udzial^2 * 
-                          zmiennosci[t, i] * zmiennosci[t, j]
+                          volatilities[t, i] * volatilities[t, j]
       
       wallet.var.ewma[t] <- wallet.var.ewma[t] + 
                               cor.matrix.ewma[i,j] * udzial^2 * 
-                                zmiennosci.ewma[t, i] * zmiennosci.ewma[t, j]
+                                volatilities.ewma[t, i] * volatilities.ewma[t, j]
       
       wallet.var.garch[t] <- wallet.var.garch[t] + 
                         cor.matrix.garch[i,j] * udzial^2 * 
-                          zmiennosci.garch[t, i] * zmiennosci.garch[t, j]
+                          volatilities.garch[t, i] * volatilities.garch[t, j]
     }
   }
 }
@@ -585,18 +580,19 @@ wallet.sd <- sqrt(wallet.var)
 wallet.sd.ewma <- sqrt(wallet.var.ewma)
 wallet.sd.garch <- sqrt(wallet.var.garch)
 
-zmien.portfela <- data.frame("data"=as.Date(cor.df$data), "Pearson" = wallet.sd, "EWMA" = wallet.sd.ewma, "GARCH" = wallet.sd.garch)
-zmien.portfela <- zmien.portfela[(okno+1):nrow(zmien.portfela),]
+wallet.chang <- data.frame("data"=as.Date(cor.df$data), "Pearson" = wallet.sd, "EWMA" = wallet.sd.ewma, "GARCH" = wallet.sd.garch)
+wallet.chang <- wallet.chang[(window+1):nrow(wallet.chang),]
 
-d1 <- (1/3*zmiennosci$zmiennosc.dax + 1/3*zmiennosci$zmiennosc.wig + 1/3*zmiennosci$zmiennosc.smi) - (wallet.sd)
-d2 <- (1/3*zmiennosci.ewma$zmiennosc.dax + 1/3*zmiennosci.ewma$zmiennosc.wig + 1/3*zmiennosci.ewma$zmiennosc.smi) - (wallet.sd.ewma)
-d3 <- (1/3*zmiennosci.garch$zmiennosc.dax + 1/3*zmiennosci.garch$zmiennosc.wig + 1/3*zmiennosci.garch$zmiennosc.smi) - (wallet.sd.garch)
+d1 <- (1/3*volatilities$volatility.dax + 1/3*volatilities$volatility.wig + 1/3*volatilities$volatility.smi) - (wallet.sd)
+d2 <- (1/3*volatilities.ewma$volatility.dax + 1/3*volatilities.ewma$volatility.wig + 1/3*volatilities.ewma$volatility.smi) - (wallet.sd.ewma)
+d3 <- (1/3*volatilities.garch$volatility.dax + 1/3*volatilities.garch$volatility.wig + 1/3*volatilities.garch$volatility.smi) - (wallet.sd.garch)
 
-delta.zmiennosc <- data.frame("data"=df$data[-1],  "Pearson" =d1, "EWMA" = d2, "GARCH" = d3)
-delta.zmiennosc <- delta.zmiennosc[(okno+1):nrow(delta.zmiennosc),]
+delta.volatility <- data.frame("data"=df$data[-1],  "Pearson" =d1, "EWMA" = d2, "GARCH" = d3)
+delta.volatility <- delta.volatility[(window+1):nrow(delta.volatility),]
 ```
 
-Wariancja portfela jest miarą zmienności zwrotów portfela. Oblicza się ją przy użyciu odchylenia standardowego każdego papieru wartościowego wchodzącego w skład portfela inwestycyjnego, korelacji pomiędzy nimi oraz biorąc pod uwagę jaką część całoŚci portfela stanowi dany walor. Wzór na wariancję portfela jest następujący:
+
+The portfolio variance is a measure of the volatility of portfolio returns. It is calculated using the standard deviation of each security within the investment portfolio, their correlations, and considering the proportion of the total portfolio represented by each asset. The formula for portfolio variance is as follows:
 
 
 $$
@@ -604,58 +600,58 @@ $$
 $$
 
 
-Na poniższych wykresach przedstawiono zmienność portfela inwestycyjnego składajacego się z równych udziałów indeksów DAX, SMI, WIG. Do wyznaczenia zmienności stóp zwrotu oraz macierzy kowariancji wzięto pod uwagę 250-dniową historię. Zmienność stóp zwrotu wyestymowano za pomocą wzoru na wariancję, modelu EWMA oraz GARCH(1,1) odpowiednio dla każdej techniki.
-
-
-```{r}
-g1 <- ggplot(data = zmien.portfela, aes(x = data)) +
-  geom_line(aes(y = Pearson), size=.4, alpha=.9) + 
-  xlab("") + ylab("") + ylim(0, 0.04) +
-  labs(title="Korelacja Pearsona, zmienność stóp zwrotu jako wariancja") + 
-  scale_x_date(date_breaks = "2 years") + theme_bw()
-
-g2 <- ggplot(data = zmien.portfela, aes(x = data)) +
-  geom_line(aes(y = EWMA), size=.4, alpha=.9) + 
-  xlab("") + ylab(" EWMA") + ylim(0, 0.04) +
-  labs(title="Korelacja oraz zmienność stóp zwrotu wg modelu EWMA") + 
-  scale_x_date(date_breaks = "2 years") + theme_bw()
-
-g3 <- ggplot(data = zmien.portfela, aes(x = data)) +
-  geom_line(aes(y = GARCH), size=.4, alpha=.9) + 
-  xlab("") + ylab("") + ylim(0, 0.04) +
-  labs(title="Korelacja oraz zmienność stóp zwrotu wg modelu GARCH(1,1)") + 
-  scale_x_date(date_breaks = "2 years") + theme_bw()
-
-grid.arrange(g1, g2, g3,
-             top = textGrob("Zmienność portfela", 
-                            gp=gpar(fontsize=16)))
-```
-
-
-Na poniższych wykresach przedstawiono wartości reprezentujace korzyści z dywersyfikacji portfela w danym dniu. Wszystkie różnice są dodatnie, zatem zmienność portfela jest zawsze mniejsza od średniej ważonej zmienności walorów wchodzących w jego skład. Gdyby indeksy giełdowe DAX, WIG oraz SMI były idealnie skorelowane, zmienność portfela zawierającego wszystkie trzy indeksy byłaby równa sumie zmienności wszystkich trzech indeksów. Dzięki uwzględnieniu korelacji pomiędzy walorami, zmienność portfela, a co za tym idzie, ryzyko inwestycyjne zostały zredukowane. Największe korzyści z dywersyfikacji obserwujemy w okresach, gdy ceny aktywów gwałtownie się zmieniały.
+The charts below depict the volatility of an investment portfolio consisting of equal proportions of DAX, SMI, and WIG indices. To determine the return rate volatility and covariance matrix, a 250-day history was considered. The return rate volatility was estimated using the variance formula, the EWMA model, and GARCH(1,1) model, respectively, for each technique.
 
 
 ```{r fig.width=12, fig.height=7}
-g1 <- ggplot(data = delta.zmiennosc, aes(x = data)) +
+g1 <- ggplot(data = wallet.chang, aes(x = data)) +
   geom_line(aes(y = Pearson), size=.4, alpha=.9) + 
-  xlab("") + ylab("") + ylim(-.001, 0.006) +
-  labs(title="Korelacja Pearsona, zmienność stóp zwrotu jako wariancja") + 
+  xlab("") + ylab("") + ylim(0, 0.04) +
+  labs(title="Pearson's correlation, volatility of the daily returns as variance") + 
   scale_x_date(date_breaks = "2 years") + theme_bw()
 
-g2 <- ggplot(data = delta.zmiennosc, aes(x = data)) +
+g2 <- ggplot(data = wallet.chang, aes(x = data)) +
   geom_line(aes(y = EWMA), size=.4, alpha=.9) + 
-  xlab("") + ylab(" EWMA") + ylim(-.001, 0.006) +
-  labs(title="Korelacja oraz zmienność stóp zwrotu wg modelu EWMA") + 
+  xlab("") + ylab(" EWMA") + ylim(0, 0.04) +
+  labs(title="Correlation and volatility of the daily returns according to EWMA model") + 
   scale_x_date(date_breaks = "2 years") + theme_bw()
 
-g3 <- ggplot(data = delta.zmiennosc, aes(x = data)) +
+g3 <- ggplot(data = wallet.chang, aes(x = data)) +
   geom_line(aes(y = GARCH), size=.4, alpha=.9) + 
-  xlab("") + ylab("") + ylim(-.001, 0.006) +
-  labs(title="Korelacja oraz zmienność stóp zwrotu wg modelu GARCH(1,1)") + 
+  xlab("") + ylab("") + ylim(0, 0.04) +
+  labs(title="Correlation and volatility of the daily returns according to GARCH(1,1) model") + 
   scale_x_date(date_breaks = "2 years") + theme_bw()
 
 grid.arrange(g1, g2, g3,
-             top = textGrob("Korzyści z dywersyfikacji portfela\nRóżnica pomiędzy sumą zmienności poszczególnych walorów a zmiennością całego portfela", 
+             top = textGrob("Portfolio volatility", 
+                            gp=gpar(fontsize=16)))
+```
+
+
+The charts below illustrate values representing the benefits of portfolio diversification on a given day. All differences are positive, indicating that the portfolio's volatility is always lower than the weighted average volatility of the assets it comprises. If the stock market indices DAX, WIG, and SMI were perfectly correlated, the portfolio's volatility containing all three indices would be equal to the sum of the volatilities of all three indices. By considering the correlation between assets, the portfolio's volatility, and consequently, investment risk, has been reduced. The greatest diversification benefits are observed during periods when asset prices are highly volatile.
+
+
+```{r fig.width=12, fig.height=7}
+g1 <- ggplot(data = delta.volatility, aes(x = data)) +
+  geom_line(aes(y = Pearson), size=.4, alpha=.9) + 
+  xlab("") + ylab("") + ylim(-.001, 0.006) +
+  labs(title="Pearson's correlation, volatility of the daily returns as variance") + 
+  scale_x_date(date_breaks = "2 years") + theme_bw()
+
+g2 <- ggplot(data = delta.volatility, aes(x = data)) +
+  geom_line(aes(y = EWMA), size=.4, alpha=.9) + 
+  xlab("") + ylab(" EWMA") + ylim(-.001, 0.006) +
+  labs(title="Correlation and volatility of the daily returns according to EWMA model") + 
+  scale_x_date(date_breaks = "2 years") + theme_bw()
+
+g3 <- ggplot(data = delta.volatility, aes(x = data)) +
+  geom_line(aes(y = GARCH), size=.4, alpha=.9) + 
+  xlab("") + ylab("") + ylim(-.001, 0.006) +
+  labs(title="Correlation and volatility of the daily returns according to GARCH(1,1) model") + 
+  scale_x_date(date_breaks = "2 years") + theme_bw()
+
+grid.arrange(g1, g2, g3,
+             top = textGrob("Benefits of portfolio diversification\nDifference between the sum of volatility of each single assets and the volatility of the portfolio.", 
                             gp=gpar(fontsize=16)))
 ```
 
@@ -664,11 +660,11 @@ grid.arrange(g1, g2, g3,
 
 
 
-## VaR dla portfela
+## VaR for a portfolio
 
 
 
-Wartości 95% Value at Risk dla omawianego portfela inwestycyjnego wyznaczono metodą budowania modeli (metodą wariancji-kowariancji). Podejście to wymaga załozenia o normalności rozkładu dziennych zwrotów. Wartości 95% VaR wyznaczono wg poniższego wzoru:
+The 95% Value at Risk (VaR) for the discussed investment portfolio was determined using the model-building method (the variance-covariance method). This approach requires the assumption of normality in the distribution of daily returns. The 95% VaR was calculated according to the formula below:
 
 
 $$
@@ -676,7 +672,7 @@ VaR_p = N^{−1}(0.95)\cdotσ_p
 $$
 
 
-Z kolei stopy zwrotu portfela rynkowego przybliżamy średnią ważoną stóp zwrotu walorów wchodzących w skład portfela wg wzoru:
+On the other hand, we approximate the return rates of the market portfolio using the weighted average of the return rates of assets comprising the portfolio, according to the formula:
 
 
 $$
@@ -692,22 +688,23 @@ VaR.ewma.95 <- c()
 VaR.garch.95 <- c()
 
 
-for(i in c(1:(nrow(zmien.portfela)))){
-  VaR.pearson.95[i] <- zmien.portfela$Pearson[i]*qnorm(.95)
-  VaR.ewma.95[i] <- zmien.portfela$EWMA[i]*qnorm(.95)
-  VaR.garch.95[i] <- zmien.portfela$GARCH[i]*qnorm(.95)
+for(i in c(1:(nrow(wallet.chang)))){
+  VaR.pearson.95[i] <- wallet.chang$Pearson[i]*qnorm(.95)
+  VaR.ewma.95[i] <- wallet.chang$EWMA[i]*qnorm(.95)
+  VaR.garch.95[i] <- wallet.chang$GARCH[i]*qnorm(.95)
 }
 
 
-VaR <- data.frame("data"=as.Date(zmien.portfela$data),
-                  "portfolio.change" = - (as.matrix(df[(okno+2):nrow(df),c(2,4,6)]) %*% c(1/3, 1/3, 1/3)),
+VaR <- data.frame("data"=as.Date(wallet.chang$data),
+                  "portfolio.change" = - (as.matrix(df[(window+2):nrow(df),c(2,4,6)]) %*% c(1/3, 1/3, 1/3)),
                   "Pearson.95" = VaR.pearson.95,
                   "EWMA.95" = VaR.ewma.95,
                   "GARCH.95" = VaR.garch.95)
 
 ```
 
-Na poniższych wykresach przedstawiono jak zmieniał się ciąg VaR wyznaczony metodą wariancji-kowariancji, a także stopy zwrotu portfela inwestycyjnego. Wyróżniono dni, w których zmienność portfela była większa niż 95% VaR.
+
+The charts below depict how the sequence of VaR, determined by the variance-covariance method, has changed, as well as the return rates of the investment portfolio. Days where the portfolio volatility exceeded the 95% VaR are highlighted.
 
 
 ```{r fig.width=12, fig.height=10}
@@ -719,7 +716,7 @@ g1 <- ggplot(VaR, aes(data)) +
   geom_line(aes(y = portfolio.change), col="#949494", alpha=.7, size=.5)+
   geom_point(data=highlight_df, aes(x=data, y=portfolio.change), color='black', size=1, alpha=.5) +
   xlab("") + ylab("") +
-  labs(title="95% VaR dla portfela - Pearson") +
+  labs(title="95% VaR for the portfolio - Pearson") +
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 
 highlight_df <- VaR %>% 
@@ -730,7 +727,7 @@ g2 <- ggplot(VaR, aes(data)) +
   geom_line(aes(y = portfolio.change), col="#949494", alpha=.7, size=.5)+
   geom_point(data=highlight_df, aes(x=data, y=portfolio.change), color='black', size=1, alpha=.5) +
   xlab("") + ylab("") +
-  labs(title="95% VaR dla portfela - EWMA") +
+  labs(title="95% VaR for the portfolio - EWMA") +
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 
 highlight_df <- VaR %>% 
@@ -741,7 +738,7 @@ g3 <- ggplot(VaR, aes(data)) +
   geom_line(aes(y = portfolio.change), col="#949494", alpha=.7, size=.5)+
   geom_point(data=highlight_df, aes(x=data, y=portfolio.change), color='black', size=1, alpha=.5) +
   xlab("") + ylab("") +
-  labs(title="95% VaR dla portfela - GARCH") +
+  labs(title="95% VaR for the portfolio - GARCH") +
   scale_x_date(date_breaks = "2 years")  + theme_bw()
 
 grid.arrange(g1, g2, g3)
@@ -753,11 +750,12 @@ grid.arrange(g1, g2, g3)
 
 
 
-## Testowanie wsteczne
+## Backward testing
 
 
 
-Aby sprawdzić, czy VaR wyznaczony dla naszego portfela rynkowego dobrze ocenił poziom ryzyka wykonano szereg testów wstecznych: test Kupca, Christoffersena oraz wartości rzeczywistych. W poniższej tabeli przedstawiono kolejno procent przekroczeń VaR dla całego okresu, liczbę 250-dniowych okien, które pozytywnie przeszły test Kupca oraz p-value dla testu Christoffersena odpowiednio dla każdej z technik estymacji VaR.
+To check whether the VaR determined for our market portfolio accurately assessed the risk level, a series of backtests were conducted: the Kupiec test, the Christoffersen test, and real-value tests. The table below shows, in order, the percentage of VaR exceedances for the entire period, the number of 250-day windows that passed the Kupiec test, and the p-value for the Christoffersen test for each of the VaR estimation techniques.
+
 
 ```{r}
 p1 <-  sum(VaR$portfolio.change > VaR$Pearson.95)/length(VaR$portfolio.change)*100
@@ -765,15 +763,15 @@ p2 <-  sum(VaR$portfolio.change > VaR$EWMA.95)/length(VaR$portfolio.change)*100
 p3 <-  sum(VaR$portfolio.change > VaR$GARCH.95)/length(VaR$portfolio.change)*100
 
 library(GAS)
-p.values <- matrix(data=0, nrow=nrow(VaR) - 1 - okno, ncol=3)
+p.values <- matrix(data=0, nrow=nrow(VaR) - 1 - window, ncol=3)
 
-for(i in c((okno+1):(nrow(VaR)-1))){
-  b <- BacktestVaR(VaR$portfolio.change[(i-okno):(i-1)], VaR$Pearson.95[(i-okno):(i-1)], 0.95)
-  p.values[i-okno,1] <- b$LRuc["Pvalue"]
-  b <- BacktestVaR(VaR$portfolio.change[(i-okno):(i-1)], VaR$EWMA.95[(i-okno):(i-1)], 0.95)
-  p.values[i-okno,2] <-  b$LRuc["Pvalue"]
-  b <- BacktestVaR(VaR$portfolio.change[(i-okno):(i-1)], VaR$GARCH.95[(i-okno):(i-1)], 0.95)
-  p.values[i-okno,3] <-  b$LRuc["Pvalue"]
+for(i in c((window+1):(nrow(VaR)-1))){
+  b <- BacktestVaR(VaR$portfolio.change[(i-window):(i-1)], VaR$Pearson.95[(i-window):(i-1)], 0.95)
+  p.values[i-window,1] <- b$LRuc["Pvalue"]
+  b <- BacktestVaR(VaR$portfolio.change[(i-window):(i-1)], VaR$EWMA.95[(i-window):(i-1)], 0.95)
+  p.values[i-window,2] <-  b$LRuc["Pvalue"]
+  b <- BacktestVaR(VaR$portfolio.change[(i-window):(i-1)], VaR$GARCH.95[(i-window):(i-1)], 0.95)
+  p.values[i-window,3] <-  b$LRuc["Pvalue"]
 }
 
 kupiec.pearson <- sum(p.values[,1] > 0.05)/nrow(p.values)*100
@@ -786,9 +784,9 @@ christ.garch <-  BacktestVaR(VaR$portfolio.change, VaR$GARCH.95, .95)$LRcc["Pval
 
 backtests <- matrix(data=0, nrow=3, ncol=3)
 colnames(backtests) <- c("Pearson", "EWMA", "GARCH")
-rownames(backtests) <- c("% przekroczeń VaR", 
-                         "test Kupca (% okien z p-value < 0.05)", 
-                         "test Christoffersena (p-value)")
+rownames(backtests) <- c("% of exceeded VaR", 
+                         "Kupiec's test (% of windows with p-value < 0.05)", 
+                         "Christoffersen's test (p-value)")
 
 backtests[1,] <- c(round(p1,3), round(p2,3), round(p3,3))
 backtests[2,] <- c(round(kupiec.pearson,3),round(kupiec.ewma,3), round(kupiec.garch,3))
@@ -801,7 +799,9 @@ kable(backtests)
 ```
 
 
-Analizując wyniki testów wstecznych dochodzimy do wniosku, że modele EWMA oraz GARCH(1,1) pozwalają bardziej adekwatnie ocenić poziom ryzyka dla portfela rynkowego. W obu technikach znacznie większy procent 250-licznych okien nie dał podstaw do odrzucenia hipotezy zerowej w teście Kupca, która zakłada, że rzeczywiste wartości stóp zwrotu portfela przekroczyły szacowaną miarę zagrożenia odpowiednią ilość raz (w tym przypadku 5%). Lepsze oszacowanie VaR obu metod prawdopodobnie wynika z faktu, że oba modele zakładają, że aktualna kowariancja oraz zmienność stóp zwortu w mniejszym stopniu zależy od starszych obserwacji, zaś większe wagi przypisywane są niedawnym scenariuszom. Test Christoffersena niezależności VaR w czasie przeszedł pozytywnie jedynie model GARCH(1,1). Można uznać, że technika GARCH(1,1) dała najlepsze wyniki spośród wszystkich trzech metod szacowania ryzyka rynkowego dla omawianego portfela. 
+Analyzing the results of the backtests, we conclude that the EWMA and GARCH(1,1) models allow for a more accurate assessment of the risk level for the market portfolio. In both techniques, a significantly higher percentage of the 250-day windows did not provide grounds for rejecting the null hypothesis in the Kupiec test. The null hypothesis assumes that the actual return rates of the portfolio exceeded the estimated measure of risk an appropriate number of times (in this case, 5%). The better estimation of VaR in both methods likely stems from the fact that both models assume that the current covariance and return rate volatility are less dependent on older observations, and greater weights are assigned to recent scenarios.
+
+The Christoffersen test of independence over time passed positively only for the GARCH(1,1) model. It can be considered that the GARCH(1,1) technique yielded the best results among all three risk estimation methods for the discussed portfolio.
 
 
 
